@@ -4,34 +4,39 @@ from .objects import Author
 from .exceptions import RequestError
 
 _cache = {}
+_page = 1
 
 
 class CitatyAPI:
     @staticmethod
     def find_author(name):
+        global _page, _cache
+
         for key in _cache.keys():
             if name.lower() in key.lower():
                 return Author(key, _cache[key])
 
-        page = 1
-        response = api_request('GET', 'avtory', allow_redirects=True)
 
-        try:
-            while True:
-                soup = BeautifulSoup(response.text, 'html.parser')
+        while True:
+            response = api_request('GET', 'avtory', params={'page': _page})
+            soup = BeautifulSoup(response.text, 'html.parser')
 
-                authors = soup.find_all('div', class_='flex items-center mb-3')
+            btns = soup.find('div', {'id': '_ga_pagination_links'}).find_all('a')
 
-                for i in authors:
-                    orig_name = i.h5.a.text
-                    link = i.h5.a['href']
+            if len(btns) == 1 and btns[0].text == 'Предыдущая':
+                break
 
-                    _cache[orig_name] = link
+            authors = soup.find_all('div', class_='flex items-center mb-3')
 
-                    if name.lower() in orig_name.lower():
-                        return Author(orig_name, link)
+            for i in authors:
+                orig_name = i.h5.a.text
+                link = i.h5.a['href']
 
-                page += 1
-                response = api_request('GET', 'avtory', params={'page': page}, allow_redirects=False)
-        except RequestError:
-            return None
+                _cache[orig_name] = link
+
+                if name.lower() in orig_name.lower():
+                    return Author(orig_name, link)
+
+            _page += 1
+
+        return None
