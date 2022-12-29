@@ -32,6 +32,6 @@ class CitatyAPI:
                         return Author(orig_name, link)
 
                 page += 1
-                response = api_request('GET', 'avtory', params={'page': page})
+                response = api_request('GET', 'avtory', params={'page': page}, allow_redirects=False)
         except RequestError:
             return None
